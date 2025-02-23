@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import lombok.Data;
 
 import java.security.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -26,9 +27,7 @@ public class ContainerStatsEntity {
     private String blockIo;
     private int pids;
     private String applicationName;
-    private Timestamp timestamp;
+    private LocalDateTime timestamp;
     private int noOfDeployment;
 
-
-    // Getters and setters
 }

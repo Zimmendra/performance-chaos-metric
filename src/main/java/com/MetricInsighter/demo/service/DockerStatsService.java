@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.security.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -92,6 +93,7 @@ public class DockerStatsService {
             stats.setNetIo(columns[7] + " " + columns[8]);
             stats.setBlockIo(columns[9] + " " + columns[10]);
             stats.setPids(Integer.parseInt(columns[13]));
+            stats.setTimeStamp(LocalDateTime.now());
             statsList.add(stats);
         }
         return statsList;
@@ -111,6 +113,7 @@ public class DockerStatsService {
             entity.setPids(stat.getPids());
             entity.setApplicationName(stat.getApplicationName());
             entity.setNoOfDeployment(containerInfoRepository.findByContainerName(stat.getApplicationName()).getDeploymentCount());
+            entity.setTimestamp(LocalDateTime.now());
             containerStatsRepository.save(entity);
         }
     }

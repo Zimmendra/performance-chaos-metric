@@ -2,7 +2,7 @@ package com.MetricInsighter.demo.dto.response;
 
 import lombok.Data;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Data
 public class ContainerStats {
@@ -17,6 +17,6 @@ public class ContainerStats {
     private int pids;
     private String applicationName;
     private int deploymentNo;
-    private Timestamp timeStamp;
+    private LocalDateTime timeStamp;
 
 }
