@@ -31,9 +31,16 @@ public class DockerController {
 
     // Endpoint to run Docker container
     @PostMapping("/run")
-    public String runContainer(@RequestParam String containerName, @RequestParam String imageName, @RequestParam int port) {
-        return dockerService.runDockerContainer(containerName, imageName, port);
+    public String runContainer(
+            @RequestParam String containerName,
+            @RequestParam String imageName,
+            @RequestParam int port,
+            @RequestParam(defaultValue = "100M") String memoryLimit, // Default memory limit
+            @RequestParam(defaultValue = "0") String cpuLimit // Default CPU limit (0 means no limit)
+    ) {
+        return dockerService.runDockerContainer(containerName, imageName, port, memoryLimit, cpuLimit);
     }
+
 
     // Endpoint to stop Docker container
     @PostMapping("/stop")

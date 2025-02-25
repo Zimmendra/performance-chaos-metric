@@ -65,7 +65,7 @@ public class DockerService {
         }
     }
 
-    public String runDockerContainer(String containerName, String imageName, int port) {
+    public String runDockerContainer(String containerName, String imageName, int port, String memoryLimit, String cpuLimit) {
         // Set container to active
         ContainerInfoEntity container = getContainerInfoByImageName(imageName);
         if (container != null) {
@@ -74,9 +74,20 @@ public class DockerService {
             containerInfoRepository.save(container);
         }
 
-        log.info("Running container with name: {} and image: {} on port: {}", containerName, imageName, port);
-        return executeCommand("docker", "run", "-d", "-p", port + ":" + port, "--name", containerName, imageName);
+        log.info("Running container with name: {} and image: {} on port: {} with memory limit: {} and CPU limit: {}",
+                containerName, imageName, port, memoryLimit, cpuLimit);
+
+        // Create the Docker run command with memory and CPU limits
+        String command = "docker run -d -p " + port + ":" + port
+                + " --name " + containerName
+                + " --memory=" + memoryLimit
+                + " --cpus=" + cpuLimit
+                + " " + imageName;
+
+        // Execute the command and return the result
+        return executeCommand(command);
     }
+
 
     public String stopDockerContainer(String containerName) {
         // Set container to inactive

@@ -2,6 +2,8 @@ package com.MetricInsighter.demo.service;
 
 import com.MetricInsighter.demo.Repository.ChaosEventRepository;
 import com.MetricInsighter.demo.domain.ChaosEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,8 +16,35 @@ import java.util.List;
 @Service
 public class ChaosService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ChaosService.class);
+
     @Autowired
     private ChaosEventRepository chaosEventRepository;
+
+    public String getCurrentContainerConfig(String containerId) {
+        StringBuilder config = new StringBuilder();
+        logger.info("Fetching configuration for container ID: {}", containerId);
+        try {
+            // Execute the Docker inspect command
+            String command = "docker inspect " + containerId;
+            logger.debug("Executing command: {}", command);
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                config.append(line).append("\n");
+            }
+
+            process.waitFor();
+            logger.info("Successfully retrieved configuration for container ID: {}", containerId);
+        } catch (Exception e) {
+            logger.error("Error fetching configuration for container ID: {}: {}", containerId, e.getMessage());
+            return ""; // Return empty string in case of error
+        }
+
+        return config.toString(); // Return the JSON configuration as a string
+    }
 
     public String executeChaosCommand(String containerId, String eventType, String command) {
 

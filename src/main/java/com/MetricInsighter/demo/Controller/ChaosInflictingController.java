@@ -25,9 +25,13 @@ public class ChaosInflictingController {
                             @RequestParam(defaultValue = "4") int cores,
                             @RequestParam(defaultValue = "60") int duration) {
         String command = "docker exec -it " + containerId + " stress --cpu " + cores + " --timeout " + duration + "s";
-        return chaosService.executeChaosCommand(containerId, "CPU_STRESS", command);
-    }
+        String response = chaosService.executeChaosCommand(containerId, "CPU_STRESS", command);
 
+        System.out.println("Executed command: " + command);
+        System.out.println("Chaos Service Response: " + response);
+
+        return response;
+    }
     @PostMapping("/memory-stress")
     public String stressMemory(@RequestParam String containerId,
                                @RequestParam(defaultValue = "2") int vmCount,
@@ -36,6 +40,25 @@ public class ChaosInflictingController {
         String command = "docker exec -it " + containerId + " stress --vm " + vmCount + " --vm-bytes " + vmBytes + " --timeout " + duration + "s";
         return chaosService.executeChaosCommand(containerId, "MEMORY_STRESS", command);
     }
+    @PostMapping("/memory-limiter")
+    public String limitMemory(@RequestParam String containerId,
+                              @RequestParam String imageName,
+                              @RequestParam(defaultValue = "100M") String memoryLimit) {
+        // Stop the container
+        String stopCommand = "docker stop " + containerId;
+        chaosService.executeChaosCommand(containerId, "STOP_CONTAINER", stopCommand);
+
+        // Get the current container settings (for example, environment variables, volumes, etc.)
+        // Note: You will need to implement logic to retrieve these settings, as this example is simplified
+        String currentConfig = chaosService.getCurrentContainerConfig(containerId);
+
+        // Recreate and start the container with the specified memory limit
+        String startCommand = "docker run --memory=" + memoryLimit + " --name " + containerId + " " + currentConfig + " " + imageName;
+        String response = chaosService.executeChaosCommand(containerId, "RESTART_CONTAINER", startCommand);
+
+        return response;
+    }
+
 
     @PostMapping("/disk-io")
     public String stressDiskIO(@RequestParam String containerId,
@@ -104,5 +127,4 @@ public class ChaosInflictingController {
             return ResponseEntity.ok(Collections.singletonMap("Availability (%)", 0.0)); // Or handle the case when there are no events
         }
     }
-
 }
