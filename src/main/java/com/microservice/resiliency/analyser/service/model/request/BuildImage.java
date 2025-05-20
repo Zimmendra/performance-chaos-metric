@@ -1,4 +1,4 @@
-package com.MetricInsighter.demo.dto.request;
+package com.microservice.resiliency.analyser.service.model.request;
 
 import lombok.Data;
 

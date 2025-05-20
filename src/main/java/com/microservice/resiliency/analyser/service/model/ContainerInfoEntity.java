@@ -1,4 +1,4 @@
-package com.MetricInsighter.demo.domain;
+package com.microservice.resiliency.analyser.service.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
