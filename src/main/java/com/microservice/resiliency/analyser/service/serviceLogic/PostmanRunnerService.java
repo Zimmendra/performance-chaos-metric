@@ -114,12 +114,13 @@ public class PostmanRunnerService {
 
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "C:\\Users\\AD\\AppData\\Roaming\\npm\\newman.cmd", "run", collectionFile.getAbsolutePath()
+                    "newman", "run", collectionFile.getAbsolutePath()
             );
             processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
             String output = new String(process.getInputStream().readAllBytes());
             System.out.println(output);
+
             // Get calculated resiliency scores
             resiliencyScoreList = resiliencyAnalyzerService.calculateAndSaveResiliency(serviceName, deploymentId, serviceUrl);
 
@@ -130,6 +131,7 @@ public class PostmanRunnerService {
 
         return resiliencyScoreList;
     }
+
 
 
     private Integer extracted(File collectionFile) throws IOException {
