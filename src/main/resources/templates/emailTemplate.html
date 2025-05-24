@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chaos and Resilience Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9fafb;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #4f46e5;
+    }
+    .latest-metrics {
+      text-align: center;
+      font-size: 1.1em;
+      margin-top: 20px;
+      color: #555;
+    }
+    .charts-wrapper {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 40px;
+    }
+    .chart-container {
+      flex: 1 1 30%;
+      min-width: 300px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+    h2 {
+      font-size: 1em;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Chaos and Resilience Report</h1>
+
+<div class="latest-metrics">
+  <p><strong>Last Updated:</strong> <span id="lastUpdated">--</span></p>
+  <p><strong>Latest Resiliency Score:</strong> <span id="latestResScore">--</span></p>
+  <p><strong>Latest Failure Rate:</strong> <span id="latestFailRate">--</span></p>
+  <p><strong>Latest Avg Latency:</strong> <span id="latestLatency">--</span></p>
+</div>
+
+<div class="charts-wrapper">
+  <div class="chart-container">
+    <h2>Resiliency Score</h2>
+    <canvas id="resScoreChart"></canvas>
+  </div>
+  <div class="chart-container">
+    <h2>Failure Rate</h2>
+    <canvas id="failureRateChart"></canvas>
+  </div>
+  <div class="chart-container">
+    <h2>Average Latency</h2>
+    <canvas id="avgLatencyChart"></canvas>
+  </div>
+</div>
+
+<!-- ✅ Corrected script block -->
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  const data = [[${jsonData}]];
+  const chaosData = data.chaosData;
+  /*]]>*/
+
+  const labels = chaosData.map(d => `Deployment ${d.deploymentId}`);
+  const resiliencyScores = chaosData.map(d => d.resiliencyScore);
+  const failureRates = chaosData.map(d => d.failureRate);
+  const avgLatencies = chaosData.map(d => d.avgLatency);
+  const latest = chaosData[chaosData.length - 1];
+
+  document.getElementById("lastUpdated").textContent = new Date(latest.timestamp).toLocaleString();
+  document.getElementById("latestResScore").textContent = latest.resiliencyScore.toFixed(2);
+  document.getElementById("latestFailRate").textContent = latest.failureRate.toFixed(2);
+  document.getElementById("latestLatency").textContent = latest.avgLatency.toFixed(2);
+
+  const createChart = (ctxId, label, data, color) => {
+    const ctx = document.getElementById(ctxId).getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label,
+          data,
+          borderColor: color,
+          backgroundColor: color + '33',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: false }
+        }
+      }
+    });
+  };
+
+  createChart('resScoreChart', 'Resiliency Score', resiliencyScores, 'rgb(75, 192, 192)');
+  createChart('failureRateChart', 'Failure Rate', failureRates, 'rgb(255, 99, 132)');
+  createChart('avgLatencyChart', 'Average Latency', avgLatencies, 'rgb(53, 162, 235)');
+</script>
+
+</body>
+</html>

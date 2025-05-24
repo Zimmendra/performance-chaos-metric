@@ -28,7 +28,8 @@ public class ResiliencyAnalyzerService {
     @Autowired
     private ResiliencyScoreRepository resiliencyScoreRepository;
 
-    private Integer x = 0;
+    @Autowired
+    EmailService emailService;
 
     public List<ResiliencyScore> calculateAndSaveResiliency(String serviceName, String deploymentId, String serviceUrl) {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
@@ -146,5 +147,8 @@ public class ResiliencyAnalyzerService {
         } else {
             return null;
         }
+    }
+    public void sendEmail(String serviceName,String email) {
+        emailService.sendResiliencyReportEmail(resiliencyScoreRepository.findByServiceName(serviceName),email);
     }
 }

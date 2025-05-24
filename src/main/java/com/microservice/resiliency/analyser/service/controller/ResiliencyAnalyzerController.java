@@ -31,4 +31,9 @@ public class ResiliencyAnalyzerController {
     public String serviceStart(){
         return "service-start";
     }
+
+    @GetMapping("/send-email")
+    public void sendEmail(@RequestParam String serviceName,@RequestParam String email){
+        resiliencyAnalyzerService.sendEmail(serviceName,email);
+    }
 }
