@@ -1,6 +1,5 @@
 package com.microservice.resiliency.analyser.service.controller;
 
-import com.microservice.resiliency.analyser.service.model.ServiceMetrics;
 import com.microservice.resiliency.analyser.service.serviceLogic.PostmanRunnerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

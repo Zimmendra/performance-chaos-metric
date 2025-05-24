@@ -127,19 +127,15 @@ public class ResiliencyAnalyzerService {
     }
 
     public List<ResiliencyScore> getResiliencyScore(String serviceName) {
-        return resiliencyScoreRepository.findAll().stream()
-                .filter(resiliencyScore -> serviceName.equals(resiliencyScore.getServiceName()))
-                .collect(Collectors.toList());
+        return resiliencyScoreRepository.findByServiceName(serviceName);
     }
 
     public List<String> getServiceNames() {
-        return resiliencyScoreRepository.findAll().stream()
-                .map(ResiliencyScore::getServiceName).distinct()
-                .collect(Collectors.toList());
+        return resiliencyScoreRepository.findDistinctServiceNames();
     }
 
-    public ResiliencyScore saveResiliencyScore(ResiliencyScore resiliencyScore) {
-        return resiliencyScoreRepository.save(resiliencyScore);
+    public void saveResiliencyScore(ResiliencyScore resiliencyScore) {
+        resiliencyScoreRepository.save(resiliencyScore);
     }
 
     public ResiliencyScore getResiliencyScoreByServiceName(String serviceName) {

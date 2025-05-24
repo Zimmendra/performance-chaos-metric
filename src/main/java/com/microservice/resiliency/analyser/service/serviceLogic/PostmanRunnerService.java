@@ -54,6 +54,7 @@ public class PostmanRunnerService {
             double totalLatency = 0.00;
             double totalFailureRate = 0.00;
             int totalRequests = 0;
+            int totalNoOfRequest = 0;
             List<ResiliencyScore> resiliencyScores = new ArrayList<>();
 
             for (Future<List<ResiliencyScore>> future : futures) {
@@ -63,6 +64,7 @@ public class PostmanRunnerService {
                 for (ResiliencyScore score : scores) {
                     totalLatency += score.getAvgLatency();
                     totalFailureRate += score.getFailureRate();
+                    totalNoOfRequest = totalNoOfRequest + score.getNoOfRequests();
                     totalRequests++;
                 }
             }
@@ -70,6 +72,7 @@ public class PostmanRunnerService {
             if (totalRequests > 0) {
                 ResiliencyScore finalScore = new ResiliencyScore();
                 finalScore.setServiceName(serviceName);
+                finalScore.setNoOfRequests(totalNoOfRequest);
                 finalScore.setFailureRate(totalFailureRate / totalRequests);
                 finalScore.setAvgLatency(totalLatency / totalRequests);
                 finalScore.setResiliencyScore(computeResiliency(finalScore.getFailureRate(), finalScore.getAvgLatency()));
@@ -111,10 +114,12 @@ public class PostmanRunnerService {
 
     private List<ResiliencyScore> runPostman(File collectionFile, String serviceName, String deploymentId, String serviceUrl, int threads) {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
-
+/*        ProcessBuilder processBuilder = new ProcessBuilder(
+                "C:\\Users\\AD\\AppData\\Roaming\\npm\\newman.cmd", "run", collectionFile.getAbsolutePath()
+        );*/
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "newman", "run", collectionFile.getAbsolutePath()
+                    "C:\\Users\\AD\\AppData\\Roaming\\npm\\newman.cmd", "run", collectionFile.getAbsolutePath()
             );
             processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
