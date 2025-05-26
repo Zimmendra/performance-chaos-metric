@@ -15,7 +15,6 @@ public class ResiliencyScore {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String serviceName;
     private Integer deploymentId;
     private double resiliencyScore;
