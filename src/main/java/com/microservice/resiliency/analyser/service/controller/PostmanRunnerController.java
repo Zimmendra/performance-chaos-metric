@@ -1,6 +1,7 @@
 package com.microservice.resiliency.analyser.service.controller;
 
 import com.microservice.resiliency.analyser.service.serviceLogic.PostmanRunnerService;
+import jakarta.validation.constraints.Max;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class PostmanRunnerController {
 
     @PostMapping("/run")
     public String runPostmanCollection(
-            @RequestParam("threads") @Positive(message = "The threads need to be positive") int threads,
+            @RequestParam("threads") @Positive(message = "The threads need to be positive") @Max(value = 1000, message = "Threads must not exceed 1000")int threads,
             @RequestParam("file") MultipartFile file,
             @RequestParam String serviceName,
             @RequestParam String deploymentId,

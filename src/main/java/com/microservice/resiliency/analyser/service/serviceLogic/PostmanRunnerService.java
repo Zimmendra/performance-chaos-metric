@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -45,7 +46,7 @@ public class PostmanRunnerService {
             String collectionJson = new String(Files.readAllBytes(postmanCollectionFile.toPath()));
             if (!portValidationService.validateHostAndPortMatch(collectionJson, serviceUrl)) {
                 executorService.shutdown();
-                return "Error: Port number mismatch between serviceUrl and Postman collection.";
+                throw new BadRequestException("Error: Port number mismatch between serviceUrl and Postman collection.");
             }
             // Create a temporary file to store the collection JSON
             File tempFile = File.createTempFile("postman_collection", ".json");
