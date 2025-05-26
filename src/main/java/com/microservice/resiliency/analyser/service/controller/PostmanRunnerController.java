@@ -2,6 +2,7 @@ package com.microservice.resiliency.analyser.service.controller;
 
 import com.microservice.resiliency.analyser.service.serviceLogic.PostmanRunnerService;
 import jakarta.validation.constraints.Max;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +15,12 @@ import java.nio.file.Files;
 
 @RestController
 @RequestMapping("/postman")
-@CrossOrigin(origins = "http://localhost:5173/")
 @Validated
+@RequiredArgsConstructor
 public class PostmanRunnerController {
 
-    @Autowired
-    private PostmanRunnerService postmanRunnerService;
+
+    private final PostmanRunnerService postmanRunnerService;
 
     @PostMapping("/run")
     public String runPostmanCollection(
@@ -29,18 +30,14 @@ public class PostmanRunnerController {
             @RequestParam String deploymentId,
             @RequestParam String serviceUrl) {
         try {
-            File tempFile = convertMultipartToFile(file);
-            return postmanRunnerService.executeCollection(tempFile, threads, serviceName, deploymentId, serviceUrl);
+
+            return postmanRunnerService.executeCollection(file, threads, serviceName, deploymentId, serviceUrl);
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         }
     }
 
-    private File convertMultipartToFile(MultipartFile file) throws IOException {
-        File tempFile = File.createTempFile("postman_collection", ".json");
-        Files.write(tempFile.toPath(), file.getBytes());
-        return tempFile;
-    }
+
 }
 
 

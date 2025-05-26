@@ -14,11 +14,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/resiliency")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173/")
 public class ResiliencyAnalyzerController {
 
-    @Autowired
-    private ResiliencyAnalyzerService resiliencyAnalyzerService;
+
+    private final ResiliencyAnalyzerService resiliencyAnalyzerService;
 
     @GetMapping("/score")
     public List<ResiliencyScore> getResiliencyScore(@RequestParam String serviceName) {

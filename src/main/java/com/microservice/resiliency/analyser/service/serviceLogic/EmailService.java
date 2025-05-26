@@ -1,8 +1,5 @@
 package com.microservice.resiliency.analyser.service.serviceLogic;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microservice.resiliency.analyser.service.model.ChaosDataPoint;
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -15,8 +12,8 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+
+import static com.microservice.resiliency.analyser.service.constant.Constants.*;
 
 @Slf4j
 @Service
@@ -30,48 +27,48 @@ public class EmailService {
 
     public void sendResiliencyReportEmail(List<ResiliencyScore> resiliencyScores, String toEmail) {
         if (resiliencyScores == null || resiliencyScores.isEmpty()) {
-            log.warn("No resiliency scores to report for {}", toEmail);
+            log.warn(NO_RESILIENCY_SCORES_TO_REPORT_FOR, toEmail);
             return;
         }
 
         try {
-            log.info("Preparing to send email to {} with {} data points", toEmail, resiliencyScores.size());
+            log.info(PREPARING_TO_SEND_EMAIL_TO_WITH_DATA_POINTS, toEmail, resiliencyScores.size());
 
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
 
             ResiliencyScore latest = resiliencyScores.get(resiliencyScores.size() - 1);
-            String subject = "Resiliency Report - " + latest.getServiceName();
+            String subject = RESILIENCY_REPORT + latest.getServiceName();
 
             helper.setTo(toEmail);
             helper.setSubject(subject);
-            helper.setFrom("no-reply@yourdomain.com");
+            helper.setFrom(NO_REPLY_YOURDOMAIN_COM);
 
             // Set individual variables instead of JSON
             Context context = new Context();
-            context.setVariable("serviceName", latest.getServiceName());
-            context.setVariable("timestamp", latest.getTimestamp());
-            context.setVariable("labels", resiliencyScores.stream()
-                    .map(score -> "ID: " + score.getDeploymentId())
+            context.setVariable(SERVICE_NAME, latest.getServiceName());
+            context.setVariable(TIMESTAMP, latest.getTimestamp());
+            context.setVariable(LABELS, resiliencyScores.stream()
+                    .map(score -> ID + score.getDeploymentId())
                     .toList());
-            context.setVariable("resiliencyScores", resiliencyScores.stream()
+            context.setVariable(RESILIENCY_SCORES, resiliencyScores.stream()
                     .map(ResiliencyScore::getResiliencyScore)
                     .toList());
-            context.setVariable("failureRates", resiliencyScores.stream()
+            context.setVariable(FAILURE_RATES, resiliencyScores.stream()
                     .map(ResiliencyScore::getFailureRate)
                     .toList());
-            context.setVariable("avgLatencies", resiliencyScores.stream()
+            context.setVariable(AVG_LATENCIES, resiliencyScores.stream()
                     .map(ResiliencyScore::getAvgLatency)
                     .toList());
             log.info("{}",context);
-            String htmlContent = templateEngine.process("emailTemplate", context);
+            String htmlContent = templateEngine.process(EMAIL_TEMPLATE, context);
             helper.setText(htmlContent, true);
-            log.debug("Rendered email content: {}", htmlContent);
+            log.debug(RENDERED_EMAIL_CONTENT, htmlContent);
             mailSender.send(message);
-            log.info("✅ Resiliency report email sent to {}", toEmail);
+            log.info(RESILIENCY_REPORT_EMAIL_SENT_TO, toEmail);
 
         } catch (MessagingException e) {
-            log.error("❌ Failed to send resiliency report email to {}", toEmail, e);
+            log.error(FAILED_TO_SEND_RESILIENCY_REPORT_EMAIL_TO, toEmail, e);
         }
     }
 }

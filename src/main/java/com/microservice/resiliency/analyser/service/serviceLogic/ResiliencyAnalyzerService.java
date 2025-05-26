@@ -3,22 +3,21 @@ package com.microservice.resiliency.analyser.service.serviceLogic;
 import com.microservice.resiliency.analyser.service.model.Metrics;
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
 import com.microservice.resiliency.analyser.service.respository.ResiliencyScoreRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import static com.microservice.resiliency.analyser.service.constant.Constants.*;
+
+@Slf4j
 @Service
 public class ResiliencyAnalyzerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResiliencyAnalyzerService.class);
 
     private final WebClient webClient;
 
@@ -42,7 +41,7 @@ public class ResiliencyAnalyzerService {
             // Fetch metrics from the service
             String metrics = webClient
                     .get()
-                    .uri(serviceUrl + "/actuator/prometheus")
+                    .uri(serviceUrl + ACTUATOR_PROMETHEUS)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
@@ -54,10 +53,10 @@ public class ResiliencyAnalyzerService {
         } catch (Exception e) {
             Throwable rootCause = e.getCause() != null ? e.getCause() : e;
 
-            if (rootCause.getMessage() != null && rootCause.getMessage().contains("Connection refused")) {
-                logger.error("Service at {} is not started or unreachable", serviceUrl);
+            if (rootCause.getMessage() != null && rootCause.getMessage().contains(CONNECTION_REFUSED)) {
+                log.error(SERVICE_AT_IS_NOT_STARTED_OR_UNREACHABLE, serviceUrl);
             } else {
-                logger.error("Error calculating resiliency for service: {} with deployment: {}", serviceName, deploymentId, e);
+                log.error(ERROR_CALCULATING_RESILIENCY_FOR_SERVICE_WITH_DEPLOYMENT, serviceName, deploymentId, e);
             }
 
             ResiliencyScore defaultScore = new ResiliencyScore();
@@ -102,13 +101,13 @@ public class ResiliencyAnalyzerService {
             String[] parts = line.split("\\s+");
 
 
-            if (line.contains("http_server_requests_seconds_sum")) {
+            if (line.contains(HTTP_SERVER_REQUESTS_SECONDS_SUM)) {
                 totalTime += Double.valueOf(parts[1]);
             }
 
 
-            if (line.contains("http_server_requests_seconds_count{error")) {
-                if (!line.contains("/actuator/prometheus")) {
+            if (line.contains(HTTP_SERVER_REQUESTS_SECONDS_COUNT_ERROR)) {
+                if (!line.contains(ACTUATOR_PROMETHEUS)) {
                     totalRequests += Integer.valueOf(parts[1]);
                 }
             }
@@ -119,11 +118,11 @@ public class ResiliencyAnalyzerService {
                 int statusCode = Integer.parseInt(matcher.group(1));
 
                 if (statusCode >= 400 && statusCode < 600) {
-                    if (line.contains("http_server_requests_seconds_sum{error")) {
+                    if (line.contains(HTTP_SERVER_REQUESTS_SECONDS_SUM_ERROR)) {
                         failureTime += Double.valueOf(parts[1]);
                     }
 
-                    if (line.contains("http_server_requests_seconds_count{error")) {
+                    if (line.contains(HTTP_SERVER_REQUESTS_SECONDS_COUNT_ERROR)) {
                         failureRequests += Integer.valueOf(parts[1]);
                     }
                 }
@@ -137,8 +136,6 @@ public class ResiliencyAnalyzerService {
         metricsDetails.setLatencyMetrics(averageLatency);
         metricsDetails.setFailureRate(failureRate);
         metricsDetails.setNoOfRequest(totalRequests);
-        logger.info("Average Latency: " + averageLatency);
-        logger.info("Failure Rate (404 errors): " + failureRate);
         return metricsDetails;
     }
 
@@ -173,7 +170,6 @@ public class ResiliencyAnalyzerService {
     }
 
     public void deleteResiliencyScore(Long id){
-        Optional<ResiliencyScore> byId = resiliencyScoreRepository.findById(id);
-        resiliencyScoreRepository.delete(byId.get());
+        resiliencyScoreRepository.deleteById(id);
     }
 }

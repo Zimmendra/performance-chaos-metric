@@ -2,6 +2,7 @@ package com.microservice.resiliency.analyser.service.controller;
 
 import com.microservice.resiliency.analyser.service.model.UserReport;
 import com.microservice.resiliency.analyser.service.serviceLogic.UserReportService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +12,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/user-report")
-@CrossOrigin(origins = "http://localhost:5173/")
+@RequiredArgsConstructor
 public class UserReportController {
 
     @Autowired

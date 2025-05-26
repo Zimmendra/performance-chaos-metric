@@ -3,12 +3,13 @@ package com.microservice.resiliency.analyser.service.serviceLogic;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -20,32 +21,28 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.DoubleAdder;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PostmanRunnerService {
 
-    @Autowired
-    private ResourceLoader resourceLoader;
 
-    @Autowired
-    private ResiliencyAnalyzerService resiliencyAnalyzerService;
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ResourceLoader resourceLoader;
 
-    @Autowired
-    PortValidationService portValidationService;
+    private final  ResiliencyAnalyzerService resiliencyAnalyzerService;
+    private final ObjectMapper objectMapper;
 
-    public String executeCollection(File postmanCollectionFile, int threads, String serviceName, String deploymentId, String serviceUrl) {
+    private final PortValidationService portValidationService;
+
+    public String executeCollection(MultipartFile postmanCollectionFile, int threads, String serviceName, String deploymentId, String serviceUrl) throws IOException {
 
         ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
         List<Future<List<ResiliencyScore>>> futures = new ArrayList<>();
-
+        File postmanCollectionFiles = convertMultipartToFile(postmanCollectionFile);
         try {
             // Read the content of the provided Postman collection file
-            String collectionJson = new String(Files.readAllBytes(postmanCollectionFile.toPath()));
+            String collectionJson = new String(Files.readAllBytes(postmanCollectionFiles.toPath()));
             if (!portValidationService.validateHostAndPortMatch(collectionJson, serviceUrl)) {
                 executorService.shutdown();
                 throw new BadRequestException("Error: Port number mismatch between serviceUrl and Postman collection.");
@@ -192,5 +189,11 @@ public class PostmanRunnerService {
             }
         }
         return count;
+    }
+
+    private File convertMultipartToFile(MultipartFile file) throws IOException {
+        File tempFile = File.createTempFile("postman_collection", ".json");
+        Files.write(tempFile.toPath(), file.getBytes());
+        return tempFile;
     }
 }

@@ -2,6 +2,7 @@ package com.microservice.resiliency.analyser.service.serviceLogic;
 
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
 import com.microservice.resiliency.analyser.service.model.UserReport;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,18 +14,16 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-
+@RequiredArgsConstructor
 @Service
 public class SchedularService {
 
-    @Autowired
-    private UserReportService userReportService;
 
-    @Autowired
-    private ResiliencyAnalyzerService resiliencyScoreService;
+    private final UserReportService userReportService;
 
-    @Autowired
-    private EmailService emailService;
+    private final ResiliencyAnalyzerService resiliencyScoreService;
+
+    private final EmailService emailService;
 
     @Async
     @Scheduled(fixedRate = 60000)

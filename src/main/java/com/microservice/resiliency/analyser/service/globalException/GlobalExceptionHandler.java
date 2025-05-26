@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.microservice.resiliency.analyser.service.constant.Constants.*;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -21,8 +23,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleConstraintViolation(ConstraintViolationException ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Validation failed");
-        error.put("details", ex.getMessage());
+        error.put(ERROR, VALIDATION_FAILED);
+        error.put(DETAILS, ex.getMessage());
         return error;
     }
 
@@ -40,16 +42,16 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleMissingParams(MissingServletRequestParameterException ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Missing required parameter");
-        error.put("parameter", ex.getParameterName());
+        error.put(ERROR, MISSING_REQUIRED_PARAMETER);
+        error.put(PARAMETER, ex.getParameterName());
         return error;
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Internal Server Error");
-        error.put("message", ex.getMessage());
+        error.put(ERROR, INTERNAL_SERVER_ERROR);
+        error.put(MESSAGE, ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
