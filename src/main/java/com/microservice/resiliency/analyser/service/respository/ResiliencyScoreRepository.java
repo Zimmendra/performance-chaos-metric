@@ -12,6 +12,8 @@ public interface ResiliencyScoreRepository extends JpaRepository<ResiliencyScore
 
     List<ResiliencyScore> findByServiceName(String serviceName);
 
+    List<ResiliencyScore> findByServiceUrl(String serviceUrl);
+
     @Query("SELECT DISTINCT r.serviceName FROM ResiliencyScore r")
     List<String> findDistinctServiceNames();
 }

@@ -36,4 +36,9 @@ public class ResiliencyAnalyzerController {
     public void sendEmail(@RequestParam String serviceName,@RequestParam String email){
         resiliencyAnalyzerService.sendEmail(serviceName,email);
     }
+
+    @DeleteMapping("/delete-resiliency-score")
+    public void deleteResiliencyScore(@RequestParam Long resiliencyScoreId){
+        resiliencyAnalyzerService.deleteResiliencyScore(resiliencyScoreId);
+    }
 }

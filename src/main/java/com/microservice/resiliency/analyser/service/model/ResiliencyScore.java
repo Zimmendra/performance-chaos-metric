@@ -23,4 +23,5 @@ public class ResiliencyScore {
     private double avgLatency;
     private LocalDateTime timestamp;
     private Integer noOfRequests;
+    private String serviceUrl;
 }

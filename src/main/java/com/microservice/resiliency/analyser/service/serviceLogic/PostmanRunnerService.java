@@ -32,16 +32,21 @@ public class PostmanRunnerService {
     @Autowired
     private ObjectMapper objectMapper;
 
-
+    @Autowired
+    PortValidationService portValidationService;
 
     public String executeCollection(File postmanCollectionFile, int threads, String serviceName, String deploymentId, String serviceUrl) {
+
         ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
         List<Future<List<ResiliencyScore>>> futures = new ArrayList<>();
 
         try {
             // Read the content of the provided Postman collection file
             String collectionJson = new String(Files.readAllBytes(postmanCollectionFile.toPath()));
-
+            if (!portValidationService.validateHostAndPortMatch(collectionJson, serviceUrl)) {
+                executorService.shutdown();
+                return "Error: Port number mismatch between serviceUrl and Postman collection.";
+            }
             // Create a temporary file to store the collection JSON
             File tempFile = File.createTempFile("postman_collection", ".json");
             Files.write(tempFile.toPath(), collectionJson.getBytes());
@@ -69,37 +74,7 @@ public class PostmanRunnerService {
                 }
             }
 
-            if (totalRequests > 0) {
-                ResiliencyScore finalScore = new ResiliencyScore();
-                finalScore.setServiceName(serviceName);
-                finalScore.setNoOfRequests(totalNoOfRequest);
-                finalScore.setFailureRate(totalFailureRate / totalRequests);
-                finalScore.setAvgLatency(totalLatency / totalRequests);
-                finalScore.setResiliencyScore(computeResiliency(finalScore.getFailureRate(), finalScore.getAvgLatency()));
-                finalScore.setTimestamp(LocalDateTime.now());
-                Integer extracted = extracted(tempFile);
-                int i = extracted * threads;
-                log.info("Number of Request * Number of threads{}", i);
-                log.info("Total Number of Requests{}", resiliencyScores.getLast().getNoOfRequests());
-                Optional<ResiliencyScore> matchingScore = resiliencyScores.stream()
-                        .filter(resiliencyScore -> resiliencyScore.getNoOfRequests().equals(i))
-                        .findFirst();
-                if(matchingScore.isPresent()){
-                    finalScore.setDeploymentId(1);
-                    if(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName)!=null){
-                        finalScore.setDeploymentId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getDeploymentId() + 1);
-                    }
-                }else{
-                    if(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName)!=null) {
-                        finalScore.setId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getId());
-                        finalScore.setDeploymentId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getDeploymentId());
-                    }else{
-                        finalScore.setDeploymentId(1);
-                    }
-                }
-
-                resiliencyAnalyzerService.saveResiliencyScore(finalScore);
-            }
+            SavingTheResiliencyScore(threads, serviceName, serviceUrl, totalRequests, totalFailureRate, totalLatency, tempFile, resiliencyScores);
 
         } catch (IOException | InterruptedException | ExecutionException e) {
             executorService.shutdown();
@@ -110,6 +85,41 @@ public class PostmanRunnerService {
         executorService.shutdown();
         return "Postman collection executed with " + threads + " threads.";
 
+    }
+
+    private void SavingTheResiliencyScore(int threads, String serviceName, String serviceUrl, int totalRequests, double totalFailureRate, double totalLatency, File tempFile, List<ResiliencyScore> resiliencyScores) throws IOException {
+        if (totalRequests > 0) {
+            ResiliencyScore finalScore = new ResiliencyScore();
+            finalScore.setServiceName(serviceName);
+            finalScore.setNoOfRequests(threads);
+            finalScore.setFailureRate(totalFailureRate / totalRequests);
+            finalScore.setAvgLatency(totalLatency / totalRequests);
+            finalScore.setResiliencyScore(computeResiliency(finalScore.getFailureRate(), finalScore.getAvgLatency()));
+            finalScore.setTimestamp(LocalDateTime.now());
+            finalScore.setServiceUrl(serviceUrl);
+            Integer extracted = extracted(tempFile);
+            int i = extracted * threads;
+            log.info("Number of Request * Number of threads{}", i);
+            log.info("Total Number of Requests{}", resiliencyScores.getLast().getNoOfRequests());
+            Optional<ResiliencyScore> matchingScore = resiliencyScores.stream()
+                    .filter(resiliencyScore -> resiliencyScore.getNoOfRequests().equals(i))
+                    .findFirst();
+            if(matchingScore.isPresent()){
+                finalScore.setDeploymentId(1);
+                if(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName)!=null){
+                    finalScore.setDeploymentId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getDeploymentId() + 1);
+                }
+            }else{
+                if(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName)!=null) {
+                    finalScore.setId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getId());
+                    finalScore.setDeploymentId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getDeploymentId());
+                }else{
+                    finalScore.setDeploymentId(1);
+                }
+            }
+
+            resiliencyAnalyzerService.saveResiliencyScore(finalScore);
+        }
     }
 
     private List<ResiliencyScore> runPostman(File collectionFile, String serviceName, String deploymentId, String serviceUrl, int threads) {

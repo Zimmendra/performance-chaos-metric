@@ -11,6 +11,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +32,8 @@ public class ResiliencyAnalyzerService {
 
     @Autowired
     EmailService emailService;
+
+    Pattern statusPattern = Pattern.compile("status=\"(\\d{3})\"");
 
     public List<ResiliencyScore> calculateAndSaveResiliency(String serviceName, String deploymentId, String serviceUrl) {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
@@ -101,13 +105,19 @@ public class ResiliencyAnalyzerService {
             }
 
 
-            if (line.contains("http_server_requests_seconds_sum{error") && line.contains("status=\"404\"")) {
-                failureTime += Double.valueOf(parts[1]);
-            }
+            Matcher matcher = statusPattern.matcher(line);
+            if (matcher.find()) {
+                int statusCode = Integer.parseInt(matcher.group(1));
 
+                if (statusCode >= 400 && statusCode < 600) {
+                    if (line.contains("http_server_requests_seconds_sum{error")) {
+                        failureTime += Double.valueOf(parts[1]);
+                    }
 
-            if (line.contains("http_server_requests_seconds_count{error") && line.contains("status=\"404\"")) {
-                failureRequests += Integer.valueOf(parts[1]);
+                    if (line.contains("http_server_requests_seconds_count{error")) {
+                        failureRequests += Integer.valueOf(parts[1]);
+                    }
+                }
             }
         }
 
@@ -148,7 +158,12 @@ public class ResiliencyAnalyzerService {
             return null;
         }
     }
+
     public void sendEmail(String serviceName,String email) {
         emailService.sendResiliencyReportEmail(resiliencyScoreRepository.findByServiceName(serviceName),email);
+    }
+
+    public void deleteResiliencyScore(Long resiliencyScoreId){
+        resiliencyScoreRepository.deleteById(resiliencyScoreId);
     }
 }
