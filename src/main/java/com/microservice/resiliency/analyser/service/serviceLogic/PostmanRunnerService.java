@@ -45,7 +45,7 @@ public class PostmanRunnerService {
             String collectionJson = new String(Files.readAllBytes(postmanCollectionFiles.toPath()));
             if (!portValidationService.validateHostAndPortMatch(collectionJson, serviceUrl)) {
                 executorService.shutdown();
-                throw new BadRequestException("Error: Port number mismatch between serviceUrl and Postman collection.");
+                throw new BadRequestException("Port number mismatch between serviceUrl and Postman collection.");
             }
             // Create a temporary file to store the collection JSON
             File tempFile = File.createTempFile("postman_collection", ".json");
@@ -91,7 +91,7 @@ public class PostmanRunnerService {
                 return "Service is not Started";
             }
 
-            return "Error: " + e.getMessage();
+            return  e.getMessage();
         } finally {
             executorService.shutdown();
         }
