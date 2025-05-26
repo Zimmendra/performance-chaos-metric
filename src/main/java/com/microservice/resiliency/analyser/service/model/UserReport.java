@@ -10,8 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -40,5 +38,4 @@ public class UserReport {
     @NotBlank(message = "Region is required")
     private String region;
 
-    // Getters and Setters
 }

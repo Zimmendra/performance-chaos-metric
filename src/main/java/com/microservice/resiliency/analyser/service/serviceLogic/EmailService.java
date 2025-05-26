@@ -13,8 +13,10 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,60 +28,50 @@ public class EmailService {
     @Autowired
     private SpringTemplateEngine templateEngine;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     public void sendResiliencyReportEmail(List<ResiliencyScore> resiliencyScores, String toEmail) {
+        if (resiliencyScores == null || resiliencyScores.isEmpty()) {
+            log.warn("No resiliency scores to report for {}", toEmail);
+            return;
+        }
+
         try {
+            log.info("Preparing to send email to {} with {} data points", toEmail, resiliencyScores.size());
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            ResiliencyScore latest = resiliencyScores.get(resiliencyScores.size() - 1);
+            String subject = "Resiliency Report - " + latest.getServiceName();
+
             helper.setTo(toEmail);
-
-            String subject = "Resiliency Report - " +
-                    (resiliencyScores.isEmpty() ? "No Data" : resiliencyScores.get(resiliencyScores.size() - 1).getServiceName());
-
             helper.setSubject(subject);
             helper.setFrom("no-reply@yourdomain.com");
 
-            String jsonData = convertToJson(resiliencyScores);
-
+            // Set individual variables instead of JSON
             Context context = new Context();
-            context.setVariable("jsonData", jsonData);
-
-            if (!resiliencyScores.isEmpty()) {
-                ResiliencyScore latest = resiliencyScores.get(resiliencyScores.size() - 1);
-                context.setVariable("serviceName", latest.getServiceName());
-                context.setVariable("timestamp", latest.getTimestamp());
-            }
-
+            context.setVariable("serviceName", latest.getServiceName());
+            context.setVariable("timestamp", latest.getTimestamp());
+            context.setVariable("labels", resiliencyScores.stream()
+                    .map(score -> "ID: " + score.getDeploymentId())
+                    .toList());
+            context.setVariable("resiliencyScores", resiliencyScores.stream()
+                    .map(ResiliencyScore::getResiliencyScore)
+                    .toList());
+            context.setVariable("failureRates", resiliencyScores.stream()
+                    .map(ResiliencyScore::getFailureRate)
+                    .toList());
+            context.setVariable("avgLatencies", resiliencyScores.stream()
+                    .map(ResiliencyScore::getAvgLatency)
+                    .toList());
+            log.info("{}",context);
             String htmlContent = templateEngine.process("emailTemplate", context);
-
             helper.setText(htmlContent, true);
-
+            log.debug("Rendered email content: {}", htmlContent);
             mailSender.send(message);
+            log.info("✅ Resiliency report email sent to {}", toEmail);
 
-            log.info("Resiliency report email sent to {}", toEmail);
-
-        } catch (MessagingException | JsonProcessingException e) {
-            log.error("Failed to send resiliency report email", e);
+        } catch (MessagingException e) {
+            log.error("❌ Failed to send resiliency report email to {}", toEmail, e);
         }
     }
-
-    private String convertToJson(List<ResiliencyScore> resiliencyScores) throws JsonProcessingException {
-        List<ChaosDataPoint> dataPoints = resiliencyScores.stream()
-                .map(rs -> new ChaosDataPoint(
-                        rs.getDeploymentId(),
-                        rs.getResiliencyScore(),
-                        rs.getFailureRate(),
-                        rs.getAvgLatency(),
-                        rs.getTimestamp()
-                ))
-                .toList();
-
-        return objectMapper.writeValueAsString(
-                Map.of("chaosData", dataPoints)
-        );
-    }
-
 }

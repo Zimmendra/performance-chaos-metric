@@ -2,11 +2,13 @@ package com.microservice.resiliency.analyser.service.controller;
 
 import com.microservice.resiliency.analyser.service.model.UserReport;
 import com.microservice.resiliency.analyser.service.serviceLogic.UserReportService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/user-report")
 @CrossOrigin(origins = "http://localhost:5173/")
@@ -35,5 +37,11 @@ public class UserReportController {
     @GetMapping("/service/{serviceName}")
     public List<UserReport> getByServiceName(@PathVariable String serviceName) {
         return userReportService.getAllUserReportByServiceName(serviceName);
+    }
+
+    @DeleteMapping("/delete-user-report/{id}")
+    public void deleteUserReport(@PathVariable Long id){
+        log.info("DeleteUserReport()");
+        userReportService.deleteUserReport(id);
     }
 }

@@ -52,13 +52,21 @@ public class ResiliencyAnalyzerService {
             resiliencyScoreList.add(score);
 
         } catch (Exception e) {
-            logger.error("Error calculating resiliency for service: {} with deployment: {}", serviceName, deploymentId, e);
+            Throwable rootCause = e.getCause() != null ? e.getCause() : e;
+
+            if (rootCause.getMessage() != null && rootCause.getMessage().contains("Connection refused")) {
+                logger.error("Service at {} is not started or unreachable", serviceUrl);
+            } else {
+                logger.error("Error calculating resiliency for service: {} with deployment: {}", serviceName, deploymentId, e);
+            }
+
             ResiliencyScore defaultScore = new ResiliencyScore();
             defaultScore.setServiceName(serviceName);
             defaultScore.setResiliencyScore(0.0);
             defaultScore.setFailureRate(100.0);
             defaultScore.setAvgLatency(Double.MAX_VALUE);
             defaultScore.setTimestamp(LocalDateTime.now());
+            defaultScore.setErrorLog(true);
             resiliencyScoreList.add(defaultScore);
         }
 
@@ -76,6 +84,7 @@ public class ResiliencyAnalyzerService {
         score.setAvgLatency(extractMetrics.getLatencyMetrics());
         score.setTimestamp(LocalDateTime.now());
         score.setNoOfRequests(extractMetrics.getNoOfRequest());
+        score.setErrorLog(false);
         return score;
     }
 
@@ -153,7 +162,7 @@ public class ResiliencyAnalyzerService {
         if (!resiliencyScoreRepository.findAll().isEmpty()) {
             return resiliencyScoreRepository.findAll().stream()
                     .filter(resiliencyScore -> serviceName.equals(resiliencyScore.getServiceName()))
-                    .collect(Collectors.toList()).get(resiliencyScoreRepository.findAll().size() - 1);
+                    .toList().get(resiliencyScoreRepository.findAll().size() - 1);
         } else {
             return null;
         }
@@ -163,7 +172,8 @@ public class ResiliencyAnalyzerService {
         emailService.sendResiliencyReportEmail(resiliencyScoreRepository.findByServiceName(serviceName),email);
     }
 
-    public void deleteResiliencyScore(Long resiliencyScoreId){
-        resiliencyScoreRepository.deleteById(resiliencyScoreId);
+    public void deleteResiliencyScore(Long id){
+        Optional<ResiliencyScore> byId = resiliencyScoreRepository.findById(id);
+        resiliencyScoreRepository.delete(byId.get());
     }
 }

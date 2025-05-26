@@ -3,11 +3,14 @@ package com.microservice.resiliency.analyser.service.controller;
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
 import com.microservice.resiliency.analyser.service.serviceLogic.ResiliencyAnalyzerService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/resiliency")
 @RequiredArgsConstructor
@@ -38,7 +41,8 @@ public class ResiliencyAnalyzerController {
     }
 
     @DeleteMapping("/delete-resiliency-score")
-    public void deleteResiliencyScore(@RequestParam Long resiliencyScoreId){
-        resiliencyAnalyzerService.deleteResiliencyScore(resiliencyScoreId);
+    public void deleteResiliencyScore(@RequestParam Long id){
+        resiliencyAnalyzerService.deleteResiliencyScore(id);
     }
+
 }

@@ -24,4 +24,5 @@ public class ResiliencyScore {
     private LocalDateTime timestamp;
     private Integer noOfRequests;
     private String serviceUrl;
+    private Boolean errorLog;
 }

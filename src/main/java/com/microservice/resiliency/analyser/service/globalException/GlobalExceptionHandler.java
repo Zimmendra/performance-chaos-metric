@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -18,7 +17,6 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handles @RequestParam validation errors like @Positive, @NotBlank, etc.
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleConstraintViolation(ConstraintViolationException ex) {
@@ -28,7 +26,6 @@ public class GlobalExceptionHandler {
         return error;
     }
 
-    // Handles @Valid or @Validated failure for request body/params
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -39,7 +36,6 @@ public class GlobalExceptionHandler {
         return errors;
     }
 
-    // Handles missing parameters like missing `threads`, `file`, etc.
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleMissingParams(MissingServletRequestParameterException ex) {
@@ -49,7 +45,6 @@ public class GlobalExceptionHandler {
         return error;
     }
 
-    // Fallback for any other uncaught exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
         Map<String, String> error = new HashMap<>();

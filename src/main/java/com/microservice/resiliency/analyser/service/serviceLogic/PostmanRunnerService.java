@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.DoubleAdder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,28 +59,41 @@ public class PostmanRunnerService {
                 futures.add(executorService.submit(() -> runPostman(tempFile, serviceName, deploymentId, serviceUrl, threads)));
             }
 
-            double totalLatency = 0.00;
-            double totalFailureRate = 0.00;
-            int totalRequests = 0;
-            int totalNoOfRequest = 0;
-            List<ResiliencyScore> resiliencyScores = new ArrayList<>();
 
+            DoubleAdder totalLatency = new DoubleAdder();
+            DoubleAdder totalFailureRate = new DoubleAdder();
+            AtomicInteger totalRequests = new AtomicInteger();
+            AtomicInteger totalNoOfRequest = new AtomicInteger();
+            List<ResiliencyScore> resiliencyScores = new ArrayList<>();
             for (Future<List<ResiliencyScore>> future : futures) {
                 List<ResiliencyScore> scores = future.get();
                 resiliencyScores.addAll(scores);
 
+                if(scores.getFirst().getErrorLog().equals(true)){
+                    log.info("------Issue part--------");
+                    return "Please start the Service and then re run the command";
+                }
+
                 for (ResiliencyScore score : scores) {
-                    totalLatency += score.getAvgLatency();
-                    totalFailureRate += score.getFailureRate();
-                    totalNoOfRequest = totalNoOfRequest + score.getNoOfRequests();
-                    totalRequests++;
+                    totalLatency.add(score.getAvgLatency());
+                    totalFailureRate.add(score.getFailureRate());
+                    totalNoOfRequest.addAndGet(score.getNoOfRequests());
+                    totalRequests.incrementAndGet();
                 }
             }
 
-            SavingTheResiliencyScore(threads, serviceName, serviceUrl, totalRequests, totalFailureRate, totalLatency, tempFile, resiliencyScores);
+
+            SavingTheResiliencyScore(threads, serviceName, serviceUrl, totalNoOfRequest.get(), totalFailureRate.doubleValue(), totalLatency.doubleValue(), tempFile, resiliencyScores);
 
         } catch (IOException | InterruptedException | ExecutionException e) {
             executorService.shutdown();
+
+            // Check for "Connection refused" in the root cause
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            if (cause.getMessage() != null && cause.getMessage().contains("Connection refused")) {
+                return "Service is not Started";
+            }
+
             return "Error: " + e.getMessage();
         } finally {
             executorService.shutdown();
@@ -105,16 +120,16 @@ public class PostmanRunnerService {
             Optional<ResiliencyScore> matchingScore = resiliencyScores.stream()
                     .filter(resiliencyScore -> resiliencyScore.getNoOfRequests().equals(i))
                     .findFirst();
-            if(matchingScore.isPresent()){
+            if (matchingScore.isPresent()) {
                 finalScore.setDeploymentId(1);
-                if(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName)!=null){
+                if (resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName) != null) {
                     finalScore.setDeploymentId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getDeploymentId() + 1);
                 }
-            }else{
-                if(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName)!=null) {
+            } else {
+                if (resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName) != null) {
                     finalScore.setId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getId());
                     finalScore.setDeploymentId(resiliencyAnalyzerService.getResiliencyScoreByServiceName(serviceName).getDeploymentId());
-                }else{
+                } else {
                     finalScore.setDeploymentId(1);
                 }
             }
@@ -122,6 +137,7 @@ public class PostmanRunnerService {
             resiliencyAnalyzerService.saveResiliencyScore(finalScore);
         }
     }
+
 
     private List<ResiliencyScore> runPostman(File collectionFile, String serviceName, String deploymentId, String serviceUrl, int threads) {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
