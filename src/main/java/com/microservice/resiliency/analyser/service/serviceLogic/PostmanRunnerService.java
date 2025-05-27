@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,6 +37,7 @@ public class PostmanRunnerService {
     private final PortValidationService portValidationService;
 
     public String executeCollection(MultipartFile postmanCollectionFile, int threads, String serviceName, String deploymentId, String serviceUrl) throws IOException {
+        String systemType = matchCategoryByKeyword(serviceName);
 
         ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
         List<Future<List<ResiliencyScore>>> futures = new ArrayList<>();
@@ -53,7 +55,7 @@ public class PostmanRunnerService {
 
             // Submit tasks for parallel execution
             for (int i = 0; i < threads; i++) {
-                futures.add(executorService.submit(() -> runPostman(tempFile, serviceName, deploymentId, serviceUrl, threads)));
+                futures.add(executorService.submit(() -> runPostman(tempFile, serviceName, deploymentId, serviceUrl, systemType)));
             }
 
 
@@ -136,22 +138,20 @@ public class PostmanRunnerService {
     }
 
 
-    private List<ResiliencyScore> runPostman(File collectionFile, String serviceName, String deploymentId, String serviceUrl, int threads) {
+    private List<ResiliencyScore> runPostman(File collectionFile, String serviceName, String deploymentId, String serviceUrl, String systemType) {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
-/*        ProcessBuilder processBuilder = new ProcessBuilder(
-                "C:\\Users\\AD\\AppData\\Roaming\\npm\\newman.cmd", "run", collectionFile.getAbsolutePath()
-        );*/
+
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "newman", "run", collectionFile.getAbsolutePath()
-            );
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "C:\\Users\\AD\\AppData\\Roaming\\npm\\newman.cmd", "run", collectionFile.getAbsolutePath()
+        );
             processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
             String output = new String(process.getInputStream().readAllBytes());
             System.out.println(output);
 
             // Get calculated resiliency scores
-            resiliencyScoreList = resiliencyAnalyzerService.calculateAndSaveResiliency(serviceName, deploymentId, serviceUrl);
+            resiliencyScoreList = resiliencyAnalyzerService.calculateAndSaveResiliency(serviceName, deploymentId, serviceUrl,systemType);
 
         } catch (Exception e) {
             System.err.println("Error executing Newman: " + e.getMessage());
@@ -196,4 +196,45 @@ public class PostmanRunnerService {
         Files.write(tempFile.toPath(), file.getBytes());
         return tempFile;
     }
+
+    public String matchCategoryByKeyword(String input) {
+        // Normalize input: split camel case, lowercase
+        String[] words = input.split("(?=[A-Z])");
+        List<String> lowered = new ArrayList<>();
+        for (String w : words) {
+            lowered.add(w.toLowerCase());
+        }
+
+        // Define keywords for each category
+        Map<String, List<String>> categoryKeywords = Map.of(
+                "CRM", List.of("customer", "client", "lead", "sales", "contact", "crm", "pipeline"),
+                "EmployeeManagement", List.of("employee", "staff", "hr", "payroll", "management", "attendance", "leave"),
+                "Finance", List.of("invoice", "billing", "payment", "expense", "budget", "tax", "revenue"),
+                "ECommerce", List.of("cart", "order", "checkout", "product", "inventory", "shipping", "discount"),
+                "Healthcare", List.of("patient", "doctor", "appointment", "prescription", "medical", "hospital", "treatment"),
+                "Education", List.of("student", "teacher", "course", "exam", "grade", "school", "university"),
+                "Logistics", List.of("shipment", "delivery", "warehouse", "tracking", "fleet", "logistics", "carrier"),
+                "Analytics", List.of("data", "report", "dashboard", "metrics", "analysis", "insight", "visualization")
+        );
+
+        // Find the best matching category
+        String bestCategory = "Others";
+        int maxMatches = 0;
+
+        for (Map.Entry<String, List<String>> entry : categoryKeywords.entrySet()) {
+            int matches = 0;
+            for (String keyword : entry.getValue()) {
+                if (lowered.contains(keyword)) {
+                    matches++;
+                }
+            }
+            if (matches > maxMatches) {
+                maxMatches = matches;
+                bestCategory = entry.getKey();
+            }
+        }
+
+        return bestCategory;
+    }
+
 }

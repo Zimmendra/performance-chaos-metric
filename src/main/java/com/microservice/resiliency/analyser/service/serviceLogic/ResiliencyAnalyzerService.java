@@ -1,7 +1,9 @@
 package com.microservice.resiliency.analyser.service.serviceLogic;
 
+import com.microservice.resiliency.analyser.service.model.MetricForSystem;
 import com.microservice.resiliency.analyser.service.model.Metrics;
 import com.microservice.resiliency.analyser.service.model.ResiliencyScore;
+import com.microservice.resiliency.analyser.service.respository.MetricSystemRepository;
 import com.microservice.resiliency.analyser.service.respository.ResiliencyScoreRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +34,12 @@ public class ResiliencyAnalyzerService {
     @Autowired
     EmailService emailService;
 
+    @Autowired
+    MetricSystemRepository metricSystemRepository;
+
     Pattern statusPattern = Pattern.compile("status=\"(\\d{3})\"");
 
-    public List<ResiliencyScore> calculateAndSaveResiliency(String serviceName, String deploymentId, String serviceUrl) {
+    public List<ResiliencyScore> calculateAndSaveResiliency(String serviceName, String deploymentId, String serviceUrl,String systemType) {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
 
         try {
@@ -47,7 +52,7 @@ public class ResiliencyAnalyzerService {
                     .block();
 
             // Calculate resiliency score without multi-threading
-            ResiliencyScore score = calculateResiliency(metrics, serviceName);
+            ResiliencyScore score = calculateResiliency(metrics, serviceName,systemType);
             resiliencyScoreList.add(score);
 
         } catch (Exception e) {
@@ -72,10 +77,10 @@ public class ResiliencyAnalyzerService {
         return resiliencyScoreList;
     }
 
-    private ResiliencyScore calculateResiliency(String metrics, String serviceName) {
+    private ResiliencyScore calculateResiliency(String metrics, String serviceName,String systemType) {
         Metrics extractMetrics = extractMetrics(metrics);
 
-        double resiliencyScore = computeResiliency(extractMetrics.getFailureRate(), extractMetrics.getLatencyMetrics());
+        double resiliencyScore = computeResiliency(extractMetrics.getFailureRate(), extractMetrics.getLatencyMetrics(),systemType);
         ResiliencyScore score = new ResiliencyScore();
         score.setServiceName(serviceName);
         score.setResiliencyScore(resiliencyScore);
@@ -139,8 +144,11 @@ public class ResiliencyAnalyzerService {
         return metricsDetails;
     }
 
-    private double computeResiliency(double failureRate, double latency) {
-        return 100 - (failureRate * 2) - (latency / 10);
+    private double computeResiliency(double failureRate, double latency,String systemType) {
+        MetricForSystem bySystemType = metricSystemRepository.findBySystemType(systemType);
+        double failureRateMetrics = bySystemType.getFailureRateMetrics();
+        double latencyMetrics = bySystemType.getLatencyMetrics();
+        return 100 - failureRateMetrics*(failureRate) - (latency)*latencyMetrics;
     }
 
     public List<ResiliencyScore> getResiliencyScore(String serviceName) {
