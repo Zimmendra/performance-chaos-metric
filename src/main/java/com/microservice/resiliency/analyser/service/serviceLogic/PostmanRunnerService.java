@@ -142,9 +142,9 @@ public class PostmanRunnerService {
         List<ResiliencyScore> resiliencyScoreList = new ArrayList<>();
 
         try {
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "C:\\Users\\AD\\AppData\\Roaming\\npm\\newman.cmd", "run", collectionFile.getAbsolutePath()
-        );
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    "newman", "run", collectionFile.getAbsolutePath()
+            );
             processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
             String output = new String(process.getInputStream().readAllBytes());
